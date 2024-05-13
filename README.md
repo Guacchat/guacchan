@@ -2,7 +2,9 @@
 
 _Telegram group for this repo https://t.me/plebchanreact_
 
-_Demo https://plebchan.netlify.app and https://plebchan.eth.limo_
+_Web App: https://chan.guac.chat and https://chan.guacchat.com_
+
+_Plebchan_Demo https://plebchan.netlify.app and https://plebchan.eth.limo_
 
 ## To run locally
 
