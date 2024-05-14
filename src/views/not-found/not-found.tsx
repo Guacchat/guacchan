@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { HomeLogo } from '../home';
 import styles from './not-found.module.css';
 import Plebbit from '@plebbit/plebbit-js/dist/browser/index.js';
 import useTheme from '../../hooks/use-theme';
@@ -39,7 +38,11 @@ const NotFound = () => {
   return (
     <div className={styles.wrapper}>
       <div className={styles.content}>
-        <HomeLogo />
+        <Link to='https://guac.chat/' target='_blank' rel='noopener noreferrer'>
+          <div className={styles.logo}>
+            <img alt='' src='/assets/logo/logo-transparent.png' />
+          </div>
+        </Link>
         <div className={styles.boxOuter}>
           <div className={styles.boxInner}>
             <div className={styles.boxBar}>

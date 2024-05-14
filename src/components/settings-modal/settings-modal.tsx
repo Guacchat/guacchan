@@ -72,6 +72,7 @@ const Style = () => {
     <select className={styles.themeSettings} value={theme} onChange={(e) => setTheme(e.target.value)}>
       <option value='yotsuba'>Yotsuba</option>
       <option value='yotsuba-b'>Yotsuba B</option>
+      <option value='yotsuba-g'>Yotsuba G</option>
       <option value='futaba'>Futaba</option>
       <option value='burichan'>Burichan</option>
       <option value='tomorrow'>Tomorrow</option>

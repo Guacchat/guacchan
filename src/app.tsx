@@ -51,7 +51,7 @@ const App = () => {
 
   useEffect(() => {
     document.body.classList.forEach((className) => document.body.classList.remove(className));
-    const classToAdd = isInHomeView ? 'yotsuba' : theme;
+    const classToAdd = isInHomeView ? 'yotsuba-g' : theme;
     document.body.classList.add(classToAdd);
   }, [theme, isInHomeView]);
 

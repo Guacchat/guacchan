@@ -72,12 +72,12 @@
 }
 
 .parentCidWrapper {
-  position: absolute;
+  /* position: absolute; */
   background-color: var(--post-form-field-input-background-color, white);
-  width: 105px;
-  height: 15px;
-  left: 1px;
-  top: 1px;
+  width: 100%;
+  /* height: 15px; */
+  /* left: 1px; */
+  /* top: 1px; */
   padding: 5px;
 }
 

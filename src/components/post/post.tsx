@@ -17,6 +17,7 @@ import LoadingEllipsis from '../loading-ellipsis';
 import Markdown from '../markdown';
 import _ from 'lodash';
 import { getDisplayMediaInfoType } from '../../lib/utils/media-utils';
+import encodeKey from '../../hooks/encode';
 
 interface PostProps {
   index?: number;
@@ -145,7 +146,7 @@ const PostDesktop = ({ openReplyModal, post, roles, showAllReplies }: PostProps)
                 <span className={styles.pendingCid}>{state === 'failed' || stateString === 'Failed' ? 'Failed' : 'Pending'}</span>
               ) : (
                 <span className={styles.replyToPost} title={t('reply_to_post')} onClick={() => openReplyModal && openReplyModal(cid)}>
-                  {shortCid}
+                  {shortCid}({encodeKey(shortCid)})
                 </span>
               )}
             </span>
@@ -277,7 +278,7 @@ const ReplyDesktop = ({ reply, roles, openReplyModal }: PostProps) => {
                 <span className={styles.pendingCid}>{state === 'failed' || stateString === 'Failed' ? 'Failed' : 'Pending'}</span>
               ) : (
                 <span className={styles.replyToPost} title={t('reply_to_post')} onClick={() => openReplyModal && openReplyModal(cid)}>
-                  {shortCid}
+                  {shortCid} - {encodeKey(shortCid)}
                 </span>
               )}
             </span>
@@ -344,7 +345,7 @@ const ReplyDesktop = ({ reply, roles, openReplyModal }: PostProps) => {
             {isReplyingToReply && (
               <>
                 <Link to={`/p/${subplebbitAddress}/c/${parentCid}`} className={styles.quoteLink}>
-                  {`c/${parentCid && Plebbit.getShortCid(parentCid)}`}
+                  {`c/${Plebbit.getShortCid(parentCid)} - ${encodeKey(Plebbit.getShortCid(parentCid))}`}
                 </Link>
                 <br />
               </>
@@ -442,7 +443,7 @@ const PostMobile = ({ openReplyModal, post, roles, showAllReplies }: PostProps) 
                       <span className={styles.pendingCid}>{state === 'failed' || stateString === 'Failed' ? 'Failed' : 'Pending'}</span>
                     ) : (
                       <span className={styles.replyToPost} title={t('reply_to_post')} onClick={() => openReplyModal && openReplyModal(cid)}>
-                        {shortCid}
+                        {shortCid} - {encodeKey(shortCid)}
                       </span>
                     )}
                   </span>
@@ -556,7 +557,7 @@ const ReplyMobile = ({ reply, roles, openReplyModal }: PostProps) => {
                 <span className={styles.pendingCid}>{state === 'failed' || stateString === 'Failed' ? 'Failed' : 'Pending'}</span>
               ) : (
                 <span className={styles.replyToPost} title={t('reply_to_post')} onClick={() => openReplyModal && openReplyModal(cid)}>
-                  {shortCid}
+                  {shortCid} - {encodeKey(shortCid)}
                 </span>
               )}
             </span>
@@ -576,7 +577,7 @@ const ReplyMobile = ({ reply, roles, openReplyModal }: PostProps) => {
               {isReplyingToReply && (
                 <>
                   <Link to={`/p/${subplebbitAddress}/c/${parentCid}`} className={styles.quoteLink}>
-                    {`c/${parentCid && Plebbit.getShortCid(parentCid)}`}
+                    {`c/${Plebbit.getShortCid(parentCid)} - ${encodeKey(Plebbit.getShortCid(parentCid))}`}
                   </Link>
                   <br />
                 </>

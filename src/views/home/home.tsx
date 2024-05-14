@@ -1,19 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import styles from './home.module.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { Comment, Subplebbit, useAccount, useAccountSubplebbits, useSubplebbits } from '@plebbit/plebbit-react-hooks';
+import { Comment, Subplebbit, useFeed, useSubplebbit, useSubplebbitStats, useSubplebbits } from '@plebbit/plebbit-react-hooks';
 import packageJson from '../../../package.json';
 import useDefaultSubplebbits, { useDefaultSubplebbitAddresses } from '../../hooks/use-default-subplebbits';
-import usePopularPosts from '../../hooks/use-popular-posts';
-import { getCommentMediaInfo } from '../../lib/utils/media-utils';
+import { getCommentMediaInfo, getHasThumbnail } from '../../lib/utils/media-utils';
 import { CatalogPostMedia } from '../../components/catalog-row';
 import LoadingEllipsis from '../../components/loading-ellipsis';
-import { shuffle } from 'lodash';
-
-// for temporary hook to fetch subplebbit stats
-import { useMemo } from 'react';
-import { create } from 'zustand';
+import _ from 'lodash';
+import CatalogRow from '../../components/catalog-row';
+import useWindowWidth from '../../hooks/use-window-width';
 
 const isValidAddress = (address: string): boolean => {
   if (address.includes('/') || address.includes('\\') || address.includes(' ')) {
@@ -63,119 +60,300 @@ const InfoBox = () => {
   return (
     <div className={styles.box}>
       <div className={styles.infoboxBar}>
-        <h2>{t('what_is_plebchan')}</h2>
+        <h2>{t('what_is_guacchan')}</h2>
       </div>
       <div className={styles.boxContent}>
-        <Trans i18nKey='plebchan_description' shouldUnescape={true} components={{ 1: <Link to='https://plebbit.com' target='_blank' rel='noopener noreferrer' /> }} />
+        <Trans
+          i18nKey='guacchan_description'
+          shouldUnescape={true}
+          components={{
+            1: <Link to='https://plebbit.com/' target='_blank' rel='noopener noreferrer' />,
+            2: <Link to='https://plebchan.eth.limo/' target='_blank' rel='noopener noreferrer' />,
+          }}
+        />
         <br />
         <br />
-        {t('no_global_rules_info')}
+        <Trans i18nKey='no_global_rules_info' shouldUnescape={true} components={{ 1: <Link to='https://guac.chat/' target='_blank' rel='noopener noreferrer' /> }} />
       </div>
     </div>
   );
 };
 
-const Board = ({ isOffline, subplebbit }: { isOffline: boolean; subplebbit: Subplebbit }) => {
+const Boards = ({ subplebbits }: { subplebbits: (Subplebbit | undefined)[] }) => {
   const { t } = useTranslation();
-  const { address, title, tags } = subplebbit;
-  const nsfwTags = ['adult', 'gore'];
-  const nsfwTag = tags.find((tag: string) => nsfwTags.includes(tag));
-
   return (
-    <div className={styles.subplebbit} key={address}>
-      <Link to={`/p/${address}`}>{title || address}</Link>
-      {nsfwTag && <span className={styles.nsfw}> ({t(nsfwTag)})</span>}
-      {isOffline && <span className={styles.offlineIcon} />}
-    </div>
-  );
-};
-
-const Boards = ({ multisub, subplebbits }: { multisub: Subplebbit[]; subplebbits: any }) => {
-  const { t } = useTranslation();
-  const account = useAccount();
-  const subscriptions = account?.subscriptions || [];
-  const { accountSubplebbits } = useAccountSubplebbits();
-  const accountSubplebbitAddresses = Object.keys(accountSubplebbits);
-
-  const plebbitSubs = multisub.filter((sub) => sub.tags.includes('plebbit'));
-  const interestsSubs = multisub.filter(
-    (sub) => sub.tags.includes('topic') && !sub.tags.includes('plebbit') && !sub.tags.includes('country') && !sub.tags.includes('international'),
-  );
-  const randomSubs = multisub.filter((sub) => sub.tags.includes('random') && !sub.tags.includes('plebbit'));
-  const internationalSubs = multisub.filter((sub) => sub.tags.includes('international') || sub.tags.includes('country'));
-  const projectsSubs = multisub.filter((sub) => sub.tags.includes('project') && !sub.tags.includes('plebbit') && !sub.tags.includes('topic'));
-
-  const isSubOffline = (address: string) => {
-    const subplebbit = subplebbits && subplebbits.find((sub: Subplebbit) => sub?.address === address);
-    const isOffline = subplebbit?.updatedAt && subplebbit.updatedAt < Date.now() / 1000 - 60 * 60;
-    return isOffline;
-  };
-
-  return (
-    <div className={`${styles.box} ${styles.boardsBox}`}>
+    <div className={styles.box}>
       <div className={styles.boxBar}>
         <h2 className={styles.capitalize}>{t('boards')}</h2>
-        <span>{t('options')} ▼</span>
+        {/* <span>{t('options')} ▼</span> */}
       </div>
       <div className={styles.boardsBoxContent}>
         <div className={styles.column}>
-          <h3>Plebbit</h3>
+          <h3>{t('Business And Finance')}</h3>
           <div className={styles.list}>
-            {plebbitSubs.map((sub) => (
-              <Board key={sub.address} subplebbit={sub} isOffline={sub.address && isSubOffline(sub.address)} />
-            ))}
-          </div>
-          <h3>{t('projects')}</h3>
-          <div className={styles.list}>
-            {projectsSubs.map((sub) => (
-              <Board key={sub.address} subplebbit={sub} isOffline={sub.address && isSubOffline(sub.address)} />
-            ))}
-          </div>
-        </div>
-        <div className={styles.column}>
-          <h3>{t('interests')}</h3>
-          <div className={styles.list}>
-            {interestsSubs.map((sub) => (
-              <Board key={sub.address} subplebbit={sub} isOffline={sub.address && isSubOffline(sub.address)} />
-            ))}
-          </div>
-        </div>
-        <div className={styles.column}>
-          <h3>{t('random')}</h3>
-          <div className={styles.list}>
-            {randomSubs.map((sub) => (
-              <Board key={sub.address} subplebbit={sub} isOffline={sub.address && isSubOffline(sub.address)} />
-            ))}
-          </div>
-          <h3>{t('international')}</h3>
-          <div className={styles.list}>
-            {internationalSubs.map((sub) => (
-              <Board key={sub.address} subplebbit={sub} isOffline={sub.address && isSubOffline(sub.address)} />
-            ))}
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (
+                  address.includes('business') ||
+                  address.includes('finance') ||
+                  address.includes('whales') ||
+                  address.includes('bitcoin') ||
+                  address.includes('comfy') ||
+                  address.includes('token')
+                ) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
           </div>
         </div>
         <div className={styles.column}>
+          <h3>{t('Politics and Global News')}</h3>
           <div className={styles.list}>
-            <h3>{t('subscriptions')}</h3>
-            {subscriptions.length > 0
-              ? subscriptions.map((address: string, index: number) => (
-                  <div className={styles.subplebbit} key={index}>
-                    <Link to={`/p/${address}`}>{address}</Link>
-                  </div>
-                ))
-              : t('not_subscribed')}
-          </div>
-          <div className={styles.list}>
-            <h3>{t('moderating')}</h3>
-            {accountSubplebbitAddresses.length > 0
-              ? accountSubplebbitAddresses.map((address: string, index: number) => (
-                  <div className={styles.subplebbit} key={index}>
-                    <Link to={`/p/${address}`}>p/{address}</Link>
-                  </div>
-                ))
-              : t('not_moderating')}
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (address.includes('politically') || address.includes('incorrect') || address.includes('politics') || address.includes('news')) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
           </div>
         </div>
+        <div className={styles.column}>
+          <h3>{t('Entertainment')}</h3>
+          <div className={styles.list}>
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (
+                  address.includes('music') ||
+                  address.includes('videos') ||
+                  address.includes('podcast') ||
+                  address.includes('💩posting') ||
+                  address.includes('cringe') ||
+                  address.includes('movies') ||
+                  address.includes('anime')
+                ) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
+          </div>
+        </div>
+        <div className={styles.column}>
+          <h3>{t('Health and Science')}</h3>
+          <div className={styles.list}>
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (address.includes('health') || address.includes('science') || address.includes('weather')) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
+          </div>
+        </div>
+        <div className={styles.column}>
+          <h3>{t('Pleb Community & Social')}</h3>
+          <div className={styles.list}>
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (address.includes('pleb') || address.includes('reddit') || address.includes('social') || address.includes('twitter')) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
+          </div>
+        </div>
+        <div className={styles.column}>
+          <h3>{t('Others')}</h3>
+          <div className={styles.list}>
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (
+                  !address.includes('politically') &&
+                  !address.includes('incorrect') &&
+                  !address.includes('business') &&
+                  !address.includes('finance') &&
+                  !address.includes('whales') &&
+                  !address.includes('bitcoin') &&
+                  !address.includes('politics') &&
+                  !address.includes('news') &&
+                  !address.includes('music') &&
+                  !address.includes('videos') &&
+                  !address.includes('movies') &&
+                  !address.includes('anime') &&
+                  !address.includes('podcast') &&
+                  !address.includes('💩posting') &&
+                  !address.includes('cringe') &&
+                  !address.includes('bitcoin') &&
+                  !address.includes('health') &&
+                  !address.includes('science') &&
+                  !address.includes('pleb') &&
+                  !address.includes('redit') &&
+                  !address.includes('rules') &&
+                  !address.includes('modderate') &&
+                  !address.includes('moderator') &&
+                  !address.includes('censorship')
+                ) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
+          </div>
+        </div>
+        {/* <div className={styles.column}>
+          <h3>{t('Moderating')}</h3>
+          <div className={styles.list}>
+            {subplebbits
+              .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+              .map((subplebbit: Subplebbit) => {
+                const address = subplebbit.address;
+                if (address.includes('rules') || address.includes('modderate') || address.includes('moderator') || address.includes('censorship')) {
+                  return (
+                    <div className={styles.subplebbit} key={address}>
+                      <Link to={`/p/${address}`}>{address}</Link>
+                    </div>
+                  );
+                }
+              })}
+          </div>
+        </div> */}
+      </div>
+    </div>
+  );
+};
+
+const columnWidth = 180;
+
+const BizThreads = () => {
+  const { t } = useTranslation();
+  const subplebbitAddress = 'business-and-finance.eth';
+  const subplebbitAddress2 = '';
+  const subplebbitAddresses = useMemo(() => [subplebbitAddress, subplebbitAddress2], [subplebbitAddress]) as string[];
+  const subplebbit = useSubplebbit({ subplebbitAddress });
+  const columnCount = Math.floor(useWindowWidth() / columnWidth);
+  const { shortAddress, state, title } = subplebbit || {};
+  const postsPerPage = useMemo(() => (columnCount <= 2 ? 3 : columnCount === 3 ? 3 : columnCount === 4 ? 3 : 3), []);
+  const { feed, hasMore, loadMore } = useFeed({ subplebbitAddresses, sortType: 'active', postsPerPage });
+  const isFeedloaded = feed.length > 0 || state === 'failed';
+  const rows = useFeedRows(columnCount, feed, isFeedloaded, subplebbit);
+  const stats = useSubplebbitStats({ subplebbitAddress: subplebbitAddress });
+  return (
+    <div className={styles.box}>
+      <div className={`${styles.boxBar} ${styles.color2ColorBar}`}>
+        <h2 className={styles.capitalize}>
+          {title}
+          &nbsp;-&nbsp;
+          <Link to={`/p/${shortAddress}`}>{shortAddress}</Link>
+        </h2>
+        {/* <span>{t('options')} ▼</span> */}
+      </div>
+      <div className={styles.boxContent}>
+        {rows.map((row, index) => {
+          return (
+            <div>
+              <CatalogRow index={index} row={row} />
+              <tbody>
+                <tr>
+                  <td>
+                    <Trans
+                      i18nKey='board_stats_hour'
+                      values={{ userCount: stats.hourActiveUserCount, postCount: stats.hourPostCount }}
+                      components={{ 1: <span className={styles.statValue} /> }}
+                    />
+                    {' / '}
+                    <Trans
+                      i18nKey='board_stats_day'
+                      values={{ userCount: stats.dayActiveUserCount, postCount: stats.dayPostCount }}
+                      components={{ 1: <span className={styles.statValue} /> }}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+const BitcoinThreads = () => {
+  const { t } = useTranslation();
+  const subplebbitAddress = 'bitcoinbrothers.eth';
+  const subplebbitAddress2 = '';
+  const subplebbitAddresses = useMemo(() => [subplebbitAddress, subplebbitAddress2], [subplebbitAddress]) as string[];
+  const subplebbit = useSubplebbit({ subplebbitAddress });
+  const columnCount = Math.floor(useWindowWidth() / columnWidth);
+  const { shortAddress, state, title } = subplebbit || {};
+  const postsPerPage = useMemo(() => (columnCount <= 2 ? 3 : columnCount === 3 ? 3 : columnCount === 4 ? 3 : 3), []);
+  const { feed, hasMore, loadMore } = useFeed({ subplebbitAddresses, sortType: 'active', postsPerPage });
+  const isFeedloaded = feed.length > 0 || state === 'failed';
+  const rows = useFeedRows(columnCount, feed, isFeedloaded, subplebbit);
+  const stats = useSubplebbitStats({ subplebbitAddress: subplebbitAddress });
+  return (
+    <div className={styles.box}>
+      <div className={`${styles.boxBar} ${styles.color2ColorBar}`}>
+        <h2 className={styles.capitalize}>
+          {title}
+          &nbsp;-&nbsp;
+          <Link to={`/p/${shortAddress}`}>{shortAddress}</Link>
+        </h2>
+        {/* <span>{t('options')} ▼</span> */}
+      </div>
+      <div className={styles.boxContent}>
+        {rows.map((row, index) => {
+          return (
+            <div>
+              <CatalogRow index={index} row={row} />
+              <tbody>
+                <tr>
+                  <td>
+                    <Trans
+                      i18nKey='board_stats_hour'
+                      values={{ userCount: stats.hourActiveUserCount, postCount: stats.hourPostCount }}
+                      components={{ 1: <span className={styles.statValue} /> }}
+                    />
+                    {' / '}
+                    <Trans
+                      i18nKey='board_stats_day'
+                      values={{ userCount: stats.dayActiveUserCount, postCount: stats.dayPostCount }}
+                      components={{ 1: <span className={styles.statValue} /> }}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -207,125 +385,67 @@ const PopularThreadCard = ({ post, boardTitle, boardShortAddress }: PopularThrea
   );
 };
 
-const PopularThreads = ({ subplebbits }: { subplebbits: any }) => {
+const MostRecentThreads = ({ popularPosts }: { popularPosts: any[] }) => {
   const { t } = useTranslation();
-  const popularPosts = usePopularPosts(subplebbits);
+  // const subplebbitAddress = 'politically-incorrect.eth';
+  // const subplebbitAddresses = useMemo(() => [subplebbitAddress], [subplebbitAddress]) as string[];
+  // const subplebbit = useSubplebbit({ subplebbitAddress });
+  // const columnCount = Math.floor(useWindowWidth() / columnWidth);
+  // const { state } = subplebbit || {};
+  // const postsPerPage = useMemo(() => (columnCount <= 2 ? 3 : columnCount === 3 ? 3 : columnCount === 4 ? 3 : 3), []);
+  // const { feed } = useFeed({ subplebbitAddresses, sortType: 'active', postsPerPage });
+  // const isFeedloaded = feed.length > 0 || state === 'failed';
 
   return (
     <div className={styles.box}>
       <div className={`${styles.boxBar} ${styles.color2ColorBar}`}>
-        <h2 className={styles.capitalize}>{t('popular_threads')}</h2>
-        <span>{t('options')} ▼</span>
+        <h2 className={styles.capitalize}>{t('Latest Threads')}</h2>
+        {/* <span>{t('options')} ▼</span> */}
       </div>
       <div className={`${styles.boxContent} ${popularPosts.length === 8 ? styles.popularThreads : ''}`}>
         {popularPosts.length < 8 ? (
-          <LoadingEllipsis string={t('loading')} />
+          <span className={styles.loading}>
+            <LoadingEllipsis string={t('loading')} />
+          </span>
         ) : (
-          popularPosts.map((post: any) => (
-            <PopularThreadCard key={post.cid} post={post} boardTitle={post.subplebbitTitle || post.subplebbitAddress} boardShortAddress={post.subplebbitAddress} />
-          ))
+          popularPosts.map((post: any, index: number) => {
+            if (index < 8) {
+              return (
+                <PopularThreadCard key={post.cid} post={post} boardTitle={post.subplebbitTitle || post.subplebbitAddress} boardShortAddress={post.subplebbitAddress} />
+              );
+            }
+          })
         )}
       </div>
     </div>
   );
 };
 
-// temporary hook to fetch subplebbit stats
-function useSubplebbitsStats(options: any) {
-  const { subplebbitAddresses, accountName } = options || {};
-  const account = useAccount({ accountName });
-  const { subplebbits } = useSubplebbits({ subplebbitAddresses });
-
-  const { setSubplebbitStats, subplebbitsStats } = useSubplebbitsStatsStore();
-
-  useEffect(() => {
-    if (!subplebbitAddresses || subplebbitAddresses.length === 0 || !account) {
-      return;
-    }
-
-    subplebbits.forEach((subplebbit) => {
-      if (subplebbit && subplebbit.statsCid && !subplebbitsStats[subplebbit.address]) {
-        account.plebbit
-          .fetchCid(subplebbit.statsCid)
-          .then((fetchedStats: any) => {
-            setSubplebbitStats(subplebbit.address, JSON.parse(fetchedStats));
-          })
-          .catch((error: any) => {
-            console.error('Fetching subplebbit stats failed', { subplebbitAddress: subplebbit.address, error });
-          });
-      }
-    });
-  }, [account, subplebbits, setSubplebbitStats, subplebbitsStats, subplebbitAddresses]);
-
-  return useMemo(() => {
-    return subplebbitAddresses.reduce((acc: any, address: any) => {
-      acc[address] = subplebbitsStats[address] || { loading: true };
-      return acc;
-    }, {});
-  }, [subplebbitsStats, subplebbitAddresses]);
-}
-
-export type SubplebbitsStatsState = {
-  subplebbitsStats: { [subplebbitAddress: string]: any };
-  setSubplebbitStats: Function;
-};
-
-const useSubplebbitsStatsStore = create<SubplebbitsStatsState>((set) => ({
-  subplebbitsStats: {},
-  setSubplebbitStats: (subplebbitAddress: string, subplebbitStats: any) =>
-    set((state) => ({
-      subplebbitsStats: { ...state.subplebbitsStats, [subplebbitAddress]: subplebbitStats },
-    })),
-}));
-
-const Stats = ({ multisub, subplebbitAddresses }: { multisub: any; subplebbitAddresses: string[] }) => {
+const PopularThreadsB = ({ popularPosts }: { popularPosts: any[] }) => {
   const { t } = useTranslation();
-  const stats = useSubplebbitsStats({ subplebbitAddresses });
-
-  const allStatsLoaded = useMemo(() => {
-    return subplebbitAddresses.every((address) => stats[address]);
-  }, [stats, subplebbitAddresses]);
-
-  const { totalPosts, currentUsers } = useMemo(() => {
-    let totalPosts = 0;
-    let currentUsers = 0;
-
-    if (allStatsLoaded) {
-      Object.values(stats).forEach((stat: any) => {
-        totalPosts += stat.allPostCount || 0;
-        currentUsers += stat.weekActiveUserCount || 0;
-      });
-    }
-
-    return { totalPosts, currentUsers };
-  }, [stats, allStatsLoaded]);
-
-  const boardsTracked = Object.values(stats).filter((stat: any) => stat && !stat.loading).length;
-  const enoughStats = boardsTracked >= multisub.length / 2;
-
+  // const subplebbitAddress = 'politically-incorrect.eth';
+  // const subplebbitAddresses = useMemo(() => [subplebbitAddress], [subplebbitAddress]) as string[];
+  // const subplebbit = useSubplebbit({ subplebbitAddress });
+  // const columnCount = Math.floor(useWindowWidth() / columnWidth);
+  // const { state } = subplebbit || {};
+  // const postsPerPage = useMemo(() => (columnCount <= 2 ? 3 : columnCount === 3 ? 3 : columnCount === 4 ? 3 : 3), []);
+  // const { feed } = useFeed({ subplebbitAddresses, sortType: 'active', postsPerPage });
+  // const isFeedloaded = feed.length > 0 || state === 'failed';
   return (
     <div className={styles.box}>
       <div className={`${styles.boxBar} ${styles.color2ColorBar}`}>
-        <h2 className={styles.capitalize}>{t('stats')}</h2>
+        <h2 className={styles.capitalize}>{t('Popular Threads')}</h2>
+        {/* <span>{t('options')} ▼</span> */}
       </div>
-      <div className={`${styles.boxContent} ${enoughStats ? styles.stats : ''}`}>
-        {/* <div className={styles.statsInfo}>
-          <p>{t('stats_info')}</p>
-        </div> */}
-        {enoughStats ? (
-          <>
-            <div className={styles.stat}>
-              <b>{t('total_posts')}</b> {totalPosts}
-            </div>
-            <div className={styles.stat}>
-              <b>{t('current_users')}</b> {currentUsers}
-            </div>
-            <div className={styles.stat}>
-              <b>{t('boards_tracked')}</b> {boardsTracked}
-            </div>
-          </>
+      <div className={`${styles.boxContent} ${popularPosts.length === 8 ? styles.popularThreads : ''}`}>
+        {popularPosts.length < 8 ? (
+          <span className={styles.loading}>
+            <LoadingEllipsis string={t('loading')} />
+          </span>
         ) : (
-          <LoadingEllipsis string={t('loading')} />
+          popularPosts.map((post: any) => (
+            <PopularThreadCard key={post.cid} post={post} boardTitle={post.subplebbitTitle || post.subplebbitAddress} boardShortAddress={post.subplebbitAddress} />
+          ))
         )}
       </div>
     </div>
@@ -364,12 +484,12 @@ const Footer = () => {
           </a>
         </li>
         <li>
-          <a href='https://twitter.com/plebchan_eth' target='_blank' rel='noopener noreferrer'>
+          <a href='https://twitter.com/guacchat' target='_blank' rel='noopener noreferrer'>
             Twitter
           </a>
         </li>
         <li>
-          <a href='https://t.me/plebbit' target='_blank' rel='noopener noreferrer'>
+          <a href='https://t.me/guacchat' target='_blank' rel='noopener noreferrer'>
             Telegram
           </a>
         </li>
@@ -383,15 +503,15 @@ const Footer = () => {
             GitHub
           </a>
         </li>
-        {downloadAppLink && (
+        {/* {downloadAppLink && (
           <li>
             <a href={downloadAppLink} target='_blank' rel='noopener noreferrer'>
               {t('download_app')}
             </a>
           </li>
-        )}
+        )} */}
         <li>
-          <a href='https://etherscan.io/token/0xEA81DaB2e0EcBc6B5c4172DE4c22B6Ef6E55Bd8f' target='_blank' rel='noopener noreferrer'>
+          <a href='https://launchonbase.today/token/0x7c0e376Ee81435cfFDd852D97De3E93bCB64E438' target='_blank' rel='noopener noreferrer'>
             {t('token')}
           </a>
         </li>
@@ -420,29 +540,133 @@ const Footer = () => {
   );
 };
 
-export const HomeLogo = () => {
-  return (
-    <Link to='/'>
-      <div className={styles.logo}>
-        <img alt='' src='/assets/logo/logo-transparent.png' />
-      </div>
-    </Link>
-  );
+const useFeedRows = (columnCount: number, feed: any, isFeedLoaded: boolean, subplebbit: Subplebbit) => {
+  const { t } = useTranslation();
+  const { address, createdAt, description, rules, shortAddress, suggested, title } = subplebbit || {};
+  const { avatarUrl } = suggested || {};
+
+  const feedWithDescriptionAndRules = useMemo(() => {
+    if (!isFeedLoaded) {
+      return []; // prevent rules and description from appearing while feed is loading
+    }
+    if (!description && !rules) {
+      return feed;
+    }
+    const _feed = [...feed];
+    return _feed;
+  }, [feed, description, rules, address, isFeedLoaded, createdAt, title, shortAddress, avatarUrl, t]);
+
+  // Memoize rows calculation, ensuring it updates on changes to the modified feed or column count
+  const rows = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < feedWithDescriptionAndRules.length; i += columnCount) {
+      rows.push(feedWithDescriptionAndRules.slice(i, i + columnCount));
+    }
+    return rows;
+  }, [feedWithDescriptionAndRules, columnCount]);
+
+  return rows;
 };
 
 const Home = () => {
-  const defaultSubplebbits = useDefaultSubplebbits();
   const subplebbitAddresses = useDefaultSubplebbitAddresses();
   const { subplebbits } = useSubplebbits({ subplebbitAddresses });
+  const blacklisted = ['decentralizedscam.eth'];
+  const filteredSubplebits = subplebbits
+    .filter((subplebbit: Subplebbit | undefined): subplebbit is Subplebbit => subplebbit !== undefined)
+    .map((subplebbit: Subplebbit) => {
+      const address = subplebbit.address;
+      if (!blacklisted.includes(address)) {
+        _.debounce(() => {
+          AddBoardStats(address);
+        }, [100]);
+        return subplebbit;
+      }
+    });
+  const [newPosts, setNewPosts] = useState<any[]>([]);
+  const [popularPosts, setPopularPosts] = useState<any[]>([]);
+  useEffect(() => {
+    let subplebbitToPost: any = {};
+    filteredSubplebits.forEach((subplebbit: any) => {
+      let mostRecentPost = null;
+      if (subplebbit?.posts?.pages?.hot?.comments) {
+        for (const comment of Object.values(subplebbit.posts.pages.hot.comments) as Comment[]) {
+          const { deleted, locked, pinned, removed, timestamp, replyCount } = comment;
+          const commentMediaInfo = getCommentMediaInfo(comment);
+          const isMediaShowed = getHasThumbnail(commentMediaInfo, comment.link);
+          if (isMediaShowed && !removed && !deleted && !locked && !pinned && !newPosts.includes(comment)) {
+            if (newPosts.length && timestamp > newPosts[0].timestamp) {
+              setNewPosts((prev: any) => [comment, ...prev]); // Add to beginning for most recent
+            } else {
+              setNewPosts((prev: any) => [...prev, comment]);
+            }
+          }
+          if (
+            isMediaShowed &&
+            replyCount >= 2 &&
+            !removed &&
+            !deleted &&
+            !locked &&
+            !pinned && // criteria
+            timestamp > Date.now() / 1000 - 60 * 60 * 24 * 15 // 30 days
+          ) {
+            if (!mostRecentPost || comment.timestamp > mostRecentPost.timestamp) {
+              mostRecentPost = comment;
+            }
+          }
+
+          if (mostRecentPost) {
+            subplebbitToPost[subplebbit.address] = mostRecentPost;
+          }
+        }
+      }
+    });
+    const newPopularPosts: any = Object.values(subplebbitToPost)
+      .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      .slice(0, 8);
+
+    setPopularPosts(newPopularPosts);
+  }, [subplebbits]);
+
+  const [allUserCount, setAllUserCount] = useState(0);
+  const [allPostCount, setAllPostCount] = useState(0);
+
+  const AddBoardStats = (address: string) => {
+    const stats = useSubplebbitStats({ subplebbitAddress: address });
+
+    setAllUserCount((prev) => prev + stats.allActiveUserCount);
+    setAllPostCount((prev) => prev + stats.allPostCount);
+  };
+  const totalBoards = subplebbits.length;
+  const Stats = ({ subplebbits }: { subplebbits: (Subplebbit | undefined)[] }) => {
+    const { t } = useTranslation();
+    return (
+      <div className={styles.box}>
+        <div className={`${styles.boxBar} ${styles.color2ColorBar}`}>
+          <h2 className={styles.capitalize}>{t('stats')}</h2>
+        </div>
+        <div className={styles.boxContent}>
+          There are a total of {totalBoards} Boards with {allPostCount} posts and {allUserCount} users
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.content}>
-      <HomeLogo />
+      <Link to='https://guac.chat/' target='_blank' rel='noopener noreferrer'>
+        <div className={styles.logo}>
+          <img alt='' src='/assets/logo/logo-transparent.png' />
+        </div>
+      </Link>
       <SearchBar />
       <InfoBox />
-      <Boards multisub={defaultSubplebbits} subplebbits={subplebbits} />
-      <PopularThreads subplebbits={subplebbits} />
-      <Stats multisub={defaultSubplebbits} subplebbitAddresses={subplebbitAddresses} />
+      <Boards subplebbits={filteredSubplebits} />
+      <MostRecentThreads popularPosts={newPosts} />
+      <PopularThreadsB popularPosts={popularPosts} />
+      <BizThreads />
+      <BitcoinThreads />
+      <Stats subplebbits={filteredSubplebits} />
       <Footer />
     </div>
   );

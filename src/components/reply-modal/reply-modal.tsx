@@ -9,6 +9,7 @@ import useReply from '../../hooks/use-reply';
 import useWindowWidth from '../../hooks/use-window-width';
 import styles from './reply-modal.module.css';
 import _ from 'lodash';
+import encodeKey from '../../hooks/encode';
 
 interface ReplyModalProps {
   closeModal: () => void;
@@ -76,7 +77,10 @@ const ReplyModal = ({ closeModal, parentCid, scrollY }: ReplyModalProps) => {
   const modalContent = (
     <div className={styles.container} ref={nodeRef}>
       <div className={`replyModalHandle ${styles.title}`}>
-        {t('reply_to_cid', { cid: `c/${parentCid && Plebbit.getShortCid(parentCid)}`, interpolation: { escapeValue: false } })}
+        {t('reply_to_cid', {
+          cid: `c/${parentCid && Plebbit.getShortCid(parentCid)} (${parentCid && encodeKey(Plebbit.getShortCid(parentCid))})`,
+          interpolation: { escapeValue: false },
+        })}
         <button
           className={styles.closeIcon}
           onClick={(e) => {
@@ -99,11 +103,13 @@ const ReplyModal = ({ closeModal, parentCid, scrollY }: ReplyModalProps) => {
           <input type='text' ref={urlRef} placeholder={_.capitalize(t('link'))} onChange={(e) => setContent.link(e.target.value)} />
         </div>
         <div className={styles.content}>
-          <span className={styles.parentCidWrapper} ref={parentCidWrapperRef}>
+          <span className={styles.link} ref={parentCidWrapperRef}>
             <span className={styles.parentCid} ref={parentCidRef}>
-              {`c/${parentCid && Plebbit.getShortCid(parentCid)}`}
+              Reply to {`c/${parentCid && Plebbit.getShortCid(parentCid)} (${parentCid && encodeKey(Plebbit.getShortCid(parentCid))}`}
             </span>
           </span>
+          <br />
+          <br />
           <textarea
             cols={48}
             rows={4}

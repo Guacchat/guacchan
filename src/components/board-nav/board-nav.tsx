@@ -32,8 +32,11 @@ const BoardNavDesktop = ({ subplebbitAddresses }: BoardNavProps) => {
         ]
       </span>
       <span className={styles.navTopRight}>
-        [<Link to={!location.pathname.endsWith('settings') ? location.pathname + '/settings' : location.pathname}>{t('settings')}</Link>] [<Link to='/'>{t('home')}</Link>
-        ]
+        [
+        <Link to={'https://guac.chat'} target='_blank' rel='noopener noreferrer'>
+          {t('Guac Chat')}
+        </Link>
+        ] [<Link to='/settings'>{t('settings')}</Link>] [<Link to='/'>{t('home')}</Link>]
       </span>
     </div>
   );
@@ -71,6 +74,9 @@ const BoardNavMobile = ({ subplebbitAddresses, subplebbitAddress }: BoardNavProp
         {boardSelect}
       </div>
       <div className={styles.pageJump}>
+        <Link to={'https://guac.chat'} target='_blank' rel='noopener noreferrer'>
+          {t('Guac Chat')}
+        </Link>
         <Link to={useLocation().pathname + '/settings'}>{t('settings')}</Link>
         <Link to='/'>{t('home')}</Link>
       </div>
