@@ -1,4 +1,4 @@
-<img src="https://github.com/plebeius-eth/assets/blob/main/plebchan-logo.jpg" width="378" height="123">
+<img src="https://guacchan.web.app/assets/logo/logo-transparent.png" width="378" height="123">
 
 _Telegram group for this repo https://t.me/plebchanreact_
 
